@@ -1,27 +1,36 @@
-TITLE Program Template     (template.asm)
+TITLE Advent of Code Day 4     (day4.asm)
 
-; Author: 
+; Author: Scott Irons
 ; Last Modified:
-; OSU email address: ONID_ID@oregonstate.edu
-; Course number/section:   CS271 Section ???
-; Project Number:                 Due Date:
-; Description: This file is provided as a template from which you may work
-;              when developing assembly projects in CS271.
+; Description: Modified from template.asm from Oregon State CS 271
 
 INCLUDE Irvine32.inc
 
 ; (insert macro definitions here)
 
 ; (insert constant definitions here)
+BUFFER_SIZE = 100
 
 .data
 
-; (insert variable definitions here)
+fileName	BYTE "../test.txt",0
+buffer		BYTE BUFFER_SIZE DUP (?)
+bytesRead	DWORD ?
+fileHandle	DWORD ?
+
 
 .code
 main PROC
+	
+	; create filehandle
+	mov		edx, offset fileName
+	call	OpenInputFile
+	mov		fileHandle, eax
 
-; (insert executable instructions here)
+	mov		eax, fileHandle
+	mov		edx, OFFSET buffer
+	mov		ecx, BUFFER_SIZE
+	call	ReadFromFile
 
 	Invoke ExitProcess,0	; exit to operating system
 main ENDP
