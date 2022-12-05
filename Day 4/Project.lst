@@ -1,13 +1,12 @@
-Microsoft (R) Macro Assembler Version 14.29.30147.0	    12/04/22 11:05:00
-Remove Me!     (RemoveMe.asm				     Page 1 - 1
+Microsoft (R) Macro Assembler Version 14.29.30147.0	    12/04/22 22:41:43
+#Advent of Code Day 4     (day4.asm			     Page 1 - 1
 
 
-				TITLE Remove Me!     (RemoveMe.asm)
+				TITLE Advent of Code Day 4     (day4.asm)
 
-				; Author: 	Stephen Redfield
-				; Last Modified:	May 11, 2020
-				; Course number/section:   CS271 Section ???
-				; Description: This file is provided so you have something to remove from a Solution
+				; Author: Scott Irons
+				; Last Modified:
+				; Description: Modified from template.asm from Oregon State CS 271
 
 				INCLUDE Irvine32.inc
 			      C ; Include file for Irvine32.lib             (Irvine32.inc)
@@ -28,38 +27,250 @@ Microsoft (R) Macro Assembler Version 14.29.30147.0	    12/04/22 11:05:00
 			      C .LIST
 			      C 
 
+				; (insert macro definitions here)
+
+				; (insert constant definitions here)
+ = 00002EE0			BUFFER_SIZE = 12000
+ = 00000001			CHAR_SIZE = SIZEOF BYTE
+
  00000000			.data
- 00000000 49 66 20 79 6F	Greeting	BYTE	"If you're seeing this, you haven't removed this .asm file yet!",0
-	   75 27 72 65 20
-	   73 65 65 69 6E
-	   67 20 74 68 69
-	   73 2C 20 79 6F
-	   75 20 68 61 76
-	   65 6E 27 74 20
-	   72 65 6D 6F 76
-	   65 64 20 74 68
-	   69 73 20 2E 61
-	   73 6D 20 66 69
-	   6C 65 20 79 65
-	   74 21 00
+
+				; displaying results
+ 00000000 50 61 72 74 20	partA		BYTE "Part A result: ",0
+	   41 20 72 65 73
+	   75 6C 74 3A 20
+	   00
+ 00000010 50 61 72 74 20	partB		BYTE "Part B result: ",0
+	   42 20 72 65 73
+	   75 6C 74 3A 20
+	   00
+
+				; reading file and storing it
+ 00000020 2E 2E 2F 69 6E	fileName	BYTE "../input.txt",0
+	   70 75 74 2E 74
+	   78 74 00
+ 0000002D  00002EE0 [		buffer		BYTE BUFFER_SIZE DUP (?)
+	    00
+	   ]
+ 00002F0D 00000000		bytesRead	DWORD ?
+ 00002F11 00000000		fileHandle	DWORD ?
+
+				; for comparison's sake
+ 00002F15 2D			dash		BYTE '-'
+ 00002F16 5C 6E			newLine		BYTE '\n'
+
+				; index of parsing string and str_len stuff
+ 00002F18 00000001		currIndex	DWORD 1
+ 00002F1C 00000000		strLen		DWORD ?
+ 00002F20 00000000		adjIndex	DWORD ?
+
+				; store the values parsed from the buffer
+ 00002F24  00000004 [		numArr		DWORD 4 DUP (?)
+	    00000000
+	   ]
+ 00002F34 00000000		tempNum		DWORD ?
+ 00002F38 00000000		whichNum	DWORD ?
+
+				; part A result
+ 00002F3C 00000000		resultA		DWORD ?
+
 
 
  00000000			.code
  00000000			main PROC
 					
- 00000000  BA 00000000 R		MOV	EDX, OFFSET Greeting
- 00000005  E8 00000000 E		Call WriteString
- 0000000A  E8 00000000 E		Call CrLf
+					; create filehandle
+ 00000000  BA 00000020 R		mov		edx, offset fileName
+ 00000005  E8 00000000 E		call	OpenInputFile
+ 0000000A  A3 00002F11 R		mov		fileHandle, eax
+
+ 0000000F  A1 00002F11 R		mov		eax, fileHandle
+ 00000014  BA 0000002D R		mov		edx, OFFSET buffer
+ 00000019  B9 00002EE0			mov		ecx, BUFFER_SIZE
+ 0000001E  E8 00000000 E		call	ReadFromFile
+					
+					; how many bytes were read from the string
+ 00000023  A3 00002F0D R		mov		bytesRead, eax
+
+					; current index in the num array. Once this hits 3 (or 4 we'll see what I end up with), I will do comparison stuff for solving ;P
+ 00000028  C7 05 00002F38 R		mov		whichNum, 0
+	   00000000
+
+					; for parsing char-by-char
+ 00000032  B9 0000002D R		mov		ecx, OFFSET buffer
+
+					;mov		edx, OFFSET buffer	
+					;call	WriteString
+
+ 00000037			_KeepParsing:
+ 00000037  8A 01			mov		al, [ecx]
+ 00000039  3C 2D			cmp		al, '-'
+ 0000003B  75 08			jne		_IsComma
+ 0000003D  FF 05 00002F38 R		inc		whichNum
+ 00000043  EB 12			jmp		_WeBack
+
+ 00000045			_IsComma:
+ 00000045  3C 2C			cmp		al, ','
+ 00000047  75 08			jne		_IsNewLine
+ 00000049  FF 05 00002F38 R		inc		whichNum
+ 0000004F  EB 06			jmp		_WeBack
+
+ 00000051			_IsNewLine:
+ 00000051  3C 0A			cmp		al, 10
+ 00000053  75 1F			jne		_NumberTime
+ 00000055  EB 71			jmp		_AddToTotal
+
+ 00000057			_WeBack:
+					; increment index
+ 00000057  83 05 00002F18 R		add		currIndex, 1
+	   01
+ 0000005E  41				inc		ecx
+ 0000005F  8B 1D 00002F0D R		mov		ebx, bytesRead
+ 00000065  3B 1D 00002F18 R		cmp		ebx, currIndex
+ 0000006B  7F CA			jg		_KeepParsing
+ 0000006D  74 59			je		_AddToTotal
+ 0000006F  E9 000000C0			jmp		_ToEnd
+
+
+ 00000074			_NumberTime:
+ 00000074  BB 00002F24 R		mov		ebx, OFFSET numArr
+					
+					; keep track of other offset
+ 00000079  51				push	ecx
+ 0000007A  8B 0D 00002F38 R		mov		ecx, whichNum
+ 00000080  83 F9 00			cmp		ecx, 0
+ 00000083  74 05			je		_AlreadyZero
+
+				; increment the index
+ 00000085			_GetToIndex:
+
+ 00000085  83 C3 04			add		ebx, 4
+ 00000088  E2 FB			loop	_GetToIndex
+
+				; at the correct index
+ 0000008A			_AlreadyZero:
+ 0000008A  53				push	ebx
+
+ 0000008B  8B 0B			mov		ecx, [ebx]
+ 0000008D  8B D9			mov		ebx, ecx
+ 0000008F  B8 0000000A			mov		eax, 10
+ 00000094  F7 E3			mul		ebx
+
+					; do temp stuff
+ 00000096  A3 00002F34 R		mov		tempNum, eax
+
+					; update value at index
+ 0000009B  5B				pop		ebx
+ 0000009C  8B 0D 00002F34 R		mov		ecx, tempNum
+ 000000A2  89 0B			mov		[ebx], ecx
+					; restore register to get current char. Subtract 48 to normalize it. Add this to running total
+ 000000A4  59				pop		ecx
+					
+ 000000A5  A1 00002F34 R		mov		eax, tempNum
+ 000000AA  8A 01			mov		al, [ecx]
+ 000000AC  66| 98			cbw
+ 000000AE  66| 99			cwd
+ 000000B0  99				cdq
+ 000000B1  A3 00002F34 R		mov		tempNum, eax
+					
+ 000000B6  83 2D 00002F34 R		sub		tempNum, 48
+	   30
+ 000000BD  A1 00002F34 R		mov		eax, tempNum
+
+					; updated?
+ 000000C2  01 03			add		[ebx], eax
+ 000000C4  8B 03			mov		eax, [ebx]
+
+ 000000C6  EB 8F			jmp		_WeBack
+
+ 000000C8			_addToTotal:
+ 000000C8  51				push	ecx
+
+ 000000C9  C7 05 00002F38 R		mov		whichNum, 0
+	   00000000
+ 000000D3  BB 00002F24 R		mov		ebx, OFFSET numArr
+
+					; compare pairs of numbers with EAX and ECX
+ 000000D8  8B 03			mov		eax, [ebx]
+
+					; number 3
+ 000000DA  83 C3 08			add		ebx, 8
+ 000000DD  8B 0B			mov		ecx, [ebx]
+					
+					; comparing LOWER NUMBERS OF EACH
+ 000000DF  3B C1			cmp		eax, ecx
+ 000000E1  74 20			je		_IncrementCountA
+ 000000E3  7C 10			jl		_BGreaterEqualD
+
+					; AT THIS POINT, the lower number in the second pair is less. Check if D is greater than or equal to B
+					; ebx currently points to the third number
+ 000000E5  83 EB 04			sub		ebx, 4
+ 000000E8  8B 03			mov		eax, [ebx]
+ 000000EA  83 C3 08			add		ebx, 8
+ 000000ED  8B 0B			mov		ecx, [ebx]
+
+					; compare d and b
+ 000000EF  3B C8			cmp		ecx, eax
+ 000000F1  7D 10			jge		_IncrementCountA
+ 000000F3  EB 14			jmp		_AvoidInfiniteLoop
+
+ 000000F5			_BGreaterEqualD:
+					; ebx currently points to third number
+ 000000F5  83 EB 04			sub		ebx, 4
+ 000000F8  8B 03			mov		eax, [ebx]
+ 000000FA  83 C3 08			add		ebx, 8
+ 000000FD  8B 0B			mov		ecx, [ebx]
+
+					; compare 
+ 000000FF  3B C1			cmp		eax, ecx
+ 00000101  7C 06			jl		_AvoidInfiniteLoop
+
+
+ 00000103			_IncrementCountA:
+ 00000103  FF 05 00002F3C R		inc		resultA
+
+ 00000109			_AvoidInfiniteLoop:
+					; for my weird loop
+ 00000109  B9 00000004			mov		ecx, 4
+ 0000010E  BB 00002F24 R		mov		ebx, OFFSET numArr
+
+ 00000113			_clearArray:
+					;
+ 00000113  8B 03			mov		eax, [ebx]
+					;call	WriteInt
+ 00000115  B8 00000000			mov		eax, 0
+ 0000011A  89 03			mov		[ebx], eax
+ 0000011C  83 C3 04			add		ebx, 4
+ 0000011F  E2 F2			loop	_clearArray
+
+ 00000121  59				pop		ecx
+ 00000122  8B 1D 00002F0D R		mov		ebx, bytesRead
+ 00000128  3B 1D 00002F18 R		cmp		ebx, currIndex
+ 0000012E  0F 85 FFFFFF23		jne		_WeBack
+
+ 00000134			_ToEnd:
+ 00000134  BA 00000000 R		mov		edx, OFFSET partA
+ 00000139  E8 00000000 E		call	WriteString
+ 0000013E  A1 00002F3C R		mov		eax, resultA
+ 00000143  E8 00000000 E		call	WriteInt
 
 					Invoke ExitProcess,0	; exit to operating system
- 0000000F  6A 00	   *	    push   +000000000h
- 00000011  E8 00000000 E   *	    call   ExitProcess
- 00000016			main ENDP
+ 00000148  6A 00	   *	    push   +000000000h
+ 0000014A  E8 00000000 E   *	    call   ExitProcess
+ 0000014F			main ENDP
+
+				; test thing
+ 0000014F			procedure PROC
+ 0000014F  BA 00000000 R		mov		edx, OFFSET partA
+ 00000154  E8 00000000 E		call	WriteString
+
+ 00000159  C3				ret
+ 0000015A			procedure ENDP
 
 
 				END main
-Microsoft (R) Macro Assembler Version 14.29.30147.0	    12/04/22 11:05:00
-Remove Me!     (RemoveMe.asm				     Symbols 2 - 1
+Microsoft (R) Macro Assembler Version 14.29.30147.0	    12/04/22 22:41:43
+#Advent of Code Day 4     (day4.asm			     Symbols 2 - 1
 
 
 
@@ -152,8 +363,8 @@ Segments and Groups:
 
 FLAT . . . . . . . . . . . . . .	GROUP
 STACK  . . . . . . . . . . . . .	32 Bit	 00001000 Para	  Stack	  'STACK'	 
-_DATA  . . . . . . . . . . . . .	32 Bit	 0000003F Para	  Public  'DATA'	
-_TEXT  . . . . . . . . . . . . .	32 Bit	 00000016 Para	  Public  'CODE'	
+_DATA  . . . . . . . . . . . . .	32 Bit	 00002F40 Para	  Public  'DATA'	
+_TEXT  . . . . . . . . . . . . .	32 Bit	 0000015A Para	  Public  'CODE'	
 
 
 Procedures, parameters, and locals:
@@ -260,8 +471,22 @@ WriteStackFrame  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External
 WriteString  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteToFile  . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
 WriteWindowsMsg  . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External STDCALL
-main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 00000016 Public STDCALL
+main . . . . . . . . . . . . . .	P Near	 00000000 _TEXT	Length= 0000014F Public STDCALL
+  _KeepParsing . . . . . . . . .	L Near	 00000037 _TEXT	
+  _IsComma . . . . . . . . . . .	L Near	 00000045 _TEXT	
+  _IsNewLine . . . . . . . . . .	L Near	 00000051 _TEXT	
+  _WeBack  . . . . . . . . . . .	L Near	 00000057 _TEXT	
+  _NumberTime  . . . . . . . . .	L Near	 00000074 _TEXT	
+  _GetToIndex  . . . . . . . . .	L Near	 00000085 _TEXT	
+  _AlreadyZero . . . . . . . . .	L Near	 0000008A _TEXT	
+  _addToTotal  . . . . . . . . .	L Near	 000000C8 _TEXT	
+  _BGreaterEqualD  . . . . . . .	L Near	 000000F5 _TEXT	
+  _IncrementCountA . . . . . . .	L Near	 00000103 _TEXT	
+  _AvoidInfiniteLoop . . . . . .	L Near	 00000109 _TEXT	
+  _clearArray  . . . . . . . . .	L Near	 00000113 _TEXT	
+  _ToEnd . . . . . . . . . . . .	L Near	 00000134 _TEXT	
 printf . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
+procedure  . . . . . . . . . . .	P Near	 0000014F _TEXT	Length= 0000000B Public STDCALL
 scanf  . . . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 wsprintfA  . . . . . . . . . . .	P Near	 00000000 FLAT	Length= 00000000 External C
 
@@ -280,7 +505,9 @@ Symbols:
 @fardata . . . . . . . . . . . .	Text   	 FLAT
 @stack . . . . . . . . . . . . .	Text   	 FLAT
 ALT_MASK . . . . . . . . . . . .	Number	 00000003h   
+BUFFER_SIZE  . . . . . . . . . .	Number	 00002EE0h   
 CAPSLOCK_ON  . . . . . . . . . .	Number	 00000080h   
+CHAR_SIZE  . . . . . . . . . . .	Number	 00000001h   
 CREATE_ALWAYS  . . . . . . . . .	Number	 00000002h   
 CREATE_NEW . . . . . . . . . . .	Number	 00000001h   
 CTRL_MASK  . . . . . . . . . . .	Number	 0000000Ch   
@@ -328,7 +555,6 @@ GENERIC_EXECUTE  . . . . . . . .	Number	 20000000h
 GENERIC_READ . . . . . . . . . .	Number	 -80000000h   
 GENERIC_WRITE  . . . . . . . . .	Number	 40000000h   
 GetCommandLine . . . . . . . . .	Text   	 GetCommandLineA
-Greeting . . . . . . . . . . . .	Byte	 00000000 _DATA	
 HANDLE . . . . . . . . . . . . .	Text   	 DWORD
 HEAP_GENERATE_EXCEPTIONS . . . .	Number	 00000004h   
 HEAP_GROWABLE  . . . . . . . . .	Number	 00000002h   
@@ -480,11 +706,18 @@ VK_UP  . . . . . . . . . . . . .	Number	 00000026h
 WINDOW_BUFFER_SIZE_EVENT . . . .	Number	 00000004h   
 WriteConsoleOutputCharacter  . .	Text   	 WriteConsoleOutputCharacterA
 WriteConsole . . . . . . . . . .	Text   	 WriteConsoleA
+adjIndex . . . . . . . . . . . .	DWord	 00002F20 _DATA	
 black  . . . . . . . . . . . . .	Number	 00000000h   
 blue . . . . . . . . . . . . . .	Number	 00000001h   
 brown  . . . . . . . . . . . . .	Number	 00000006h   
+buffer . . . . . . . . . . . . .	Byte	 0000002D _DATA	
+bytesRead  . . . . . . . . . . .	DWord	 00002F0D _DATA	
+currIndex  . . . . . . . . . . .	DWord	 00002F18 _DATA	
 cyan . . . . . . . . . . . . . .	Number	 00000003h   
+dash . . . . . . . . . . . . . .	Byte	 00002F15 _DATA	
 exit . . . . . . . . . . . . . .	Text   	 INVOKE ExitProcess,0
+fileHandle . . . . . . . . . . .	DWord	 00002F11 _DATA	
+fileName . . . . . . . . . . . .	Byte	 00000020 _DATA	
 gray . . . . . . . . . . . . . .	Number	 00000008h   
 green  . . . . . . . . . . . . .	Number	 00000002h   
 lightBlue  . . . . . . . . . . .	Number	 00000009h   
@@ -494,7 +727,15 @@ lightGreen . . . . . . . . . . .	Number	 0000000Ah
 lightMagenta . . . . . . . . . .	Number	 0000000Dh   
 lightRed . . . . . . . . . . . .	Number	 0000000Ch   
 magenta  . . . . . . . . . . . .	Number	 00000005h   
+newLine  . . . . . . . . . . . .	Byte	 00002F16 _DATA	
+numArr . . . . . . . . . . . . .	DWord	 00002F24 _DATA	
+partA  . . . . . . . . . . . . .	Byte	 00000000 _DATA	
+partB  . . . . . . . . . . . . .	Byte	 00000010 _DATA	
 red  . . . . . . . . . . . . . .	Number	 00000004h   
+resultA  . . . . . . . . . . . .	DWord	 00002F3C _DATA	
+strLen . . . . . . . . . . . . .	DWord	 00002F1C _DATA	
+tempNum  . . . . . . . . . . . .	DWord	 00002F34 _DATA	
+whichNum . . . . . . . . . . . .	DWord	 00002F38 _DATA	
 white  . . . . . . . . . . . . .	Number	 0000000Fh   
 wsprintf . . . . . . . . . . . .	Text   	 wsprintfA
 yellow . . . . . . . . . . . . .	Number	 0000000Eh   

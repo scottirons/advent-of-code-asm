@@ -1,1 +1,2 @@
 C:\Coding\Project0\Debug\Project.exe
+C:\Coding\ASM Advent of Code\Day 4\Debug\Project.exe
